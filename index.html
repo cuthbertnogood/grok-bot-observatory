@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GROK BOT HOST — обсерватория агентов</title>
+  <meta name="description" content="Публичная визуализация работы агентов на хосте Grok Bot / OpenClaw." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07080c; --panel: #10131a; --line: #263041; --text: #e8eef7;
+      --muted: #8b97a8; --cyan: #7dd3fc; --mint: #34d399; --gold: #fbbf24;
+      --pink: #fb7185; --violet: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "IBM Plex Mono", ui-monospace, monospace; }
+    .app { max-width: 1440px; margin: 0 auto; padding: 18px 18px 40px; }
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 16px; }
+    .kicker { font-size: 11px; letter-spacing: .22em; color: var(--cyan); text-transform: uppercase; }
+    h1 { font-family: Syne, sans-serif; font-size: clamp(28px, 4vw, 46px); line-height: .95; margin: 0; letter-spacing: -.03em; }
+    .sub { color: var(--muted); font-size: 12px; }
+    .live { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 12px var(--mint); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    .grid { display: grid; grid-template-columns: 1.45fr .9fr; gap: 16px; }
+    .panel { background: linear-gradient(180deg, #121722, #0d1118); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+    .panel h2 { margin: 0; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+    .map { position: relative; width: 100%; aspect-ratio: 1176 / 784; background: linear-gradient(rgba(7,8,12,.12), rgba(7,8,12,.28)), url("./office.jpg") center / cover no-repeat, radial-gradient(circle at 18% 40%, #1b2740 0 70px, transparent 71px), radial-gradient(circle at 78% 18%, #10261d 0 60px, transparent 61px), repeating-linear-gradient(0deg, #141a24 0 31px, #0e131c 31px 32px), repeating-linear-gradient(90deg, #141a24 0 31px, #0e131c 31px 32px), #0b0e14; }
+    .agent { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 2; transition: left .9s linear, top .9s linear; cursor: pointer; }
+    .sprite { width: 22px; height: 30px; position: relative; filter: drop-shadow(0 6px 6px rgba(0,0,0,.55)); }
+    .sprite .head { position: absolute; left: 5px; top: 0; width: 12px; height: 12px; border-radius: 3px; background: #f1c7a0; }
+    .sprite .hair { position: absolute; left: 4px; top: -3px; width: 14px; height: 7px; border-radius: 3px 3px 0 0; background: var(--hair, #1f2937); }
+    .sprite .body { position: absolute; left: 4px; top: 12px; width: 14px; height: 12px; border-radius: 3px; background: var(--color, var(--cyan)); }
+    .sprite .leg { position: absolute; bottom: 0; width: 5px; height: 8px; background: #111827; border-radius: 1px; }
+    .sprite .leg.l { left: 5px; animation: step .5s infinite alternate; }
+    .sprite .leg.r { right: 5px; animation: step .5s infinite alternate-reverse; }
+    .agent.idle .leg { animation: none; }
+    @keyframes step { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+    .tag { font-size: 10px; background: rgba(7,8,12,.82); border: 1px solid rgba(255,255,255,.12); padding: 2px 6px; border-radius: 999px; white-space: nowrap; }
+    .bubble { max-width: 160px; font-size: 10px; line-height: 1.35; padding: 6px 8px; border-radius: 8px; background: rgba(16,19,26,.92); border: 1px solid rgba(125,211,252,.25); color: #dbeafe; opacity: 0; }
+    .agent.talk .bubble { opacity: 1; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+    .legend b { color: var(--text); }
+    .side { display: flex; flex-direction: column; gap: 16px; }
+    .pad { padding: 14px; }
+    .roster { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 290px; overflow: auto; }
+    .row { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: #0e131b; }
+    .row .name { font-size: 12px; }
+    .row .role { color: var(--muted); font-size: 10px; }
+    .pill { font-size: 10px; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); }
+    .pill.thinking { color: var(--violet); border-color: #4c1d95; }
+    .pill.working { color: var(--mint); border-color: #065f46; }
+    .pill.idle { color: var(--muted); }
+    .flow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+    .node { padding: 7px 9px; border-radius: 9px; border: 1px solid var(--line); font-size: 11px; background: #0c1118; }
+    .node.on { border-color: var(--cyan); color: var(--cyan); }
+    .arrow { color: #3b4657; }
+    .feed { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; min-height: 150px; }
+    .evt { font-size: 11px; color: #c5d0de; border-left: 2px solid var(--line); padding: 2px 0 2px 8px; }
+    .evt time { color: var(--muted); margin-right: 6px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+    .metric { padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: #10151d; }
+    .metric span { display: block; color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .metric strong { display: block; margin-top: 6px; font-family: Syne, sans-serif; font-size: 22px; }
+    .bar { height: 4px; background: #1d2530; border-radius: 99px; margin-top: 8px; overflow: hidden; }
+    .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--mint), var(--cyan)); }
+    footer { margin-top: 14px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    footer code { color: var(--cyan); }
+    @media (max-width: 980px) { .grid, .metrics { grid-template-columns: 1fr; } header { flex-direction: column; align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="kicker">OpenClaw × Grok · public floor</div>
+        <h1>Обсерватория агентов</h1>
+        <div class="sub">Витрина хоста. Не Control UI — только картина, как живёт флот на этой машине.</div>
+      </div>
+      <div class="live"><span class="dot"></span><div><div id="clock">--:--:--</div><div id="modeLabel">демо-поток · agents.json</div></div></div>
+    </header>
+    <div class="grid">
+      <section class="panel">
+        <div class="map" id="floor"></div>
+        <div class="legend"><span><b>WAR ROOM</b> мозг</span><span><b>OPS</b> столы</span><span><b>RACKS</b> gateway</span><span><b>STUDIO</b> память</span><span><b>LOUNGE</b> cron</span></div>
+      </section>
+      <aside class="side">
+        <section class="panel pad"><h2>Состав смены</h2><div class="roster" id="roster"></div></section>
+        <section class="panel pad"><h2>Поток работы</h2><div class="flow" id="flow"></div><div class="feed" id="feed"></div></section>
+      </aside>
+    </div>
+    <div class="metrics" id="metrics"></div>
+    <footer>Страница читает <code>agents.json</code>. Живой health: <code>window.OBSERVATORY = { healthUrl: "http://127.0.0.1:18789/health" }</code>. Gateway наружу не открывать.</footer>
+  </div>
+  <script>
+    const ROOMS = { warroom:{x:18,y:42}, kitchen:{x:42,y:16}, "desk-a":{x:48,y:34}, "desk-b":{x:48,y:48}, "desk-c":{x:48,y:62}, lounge:{x:50,y:82}, racks:{x:78,y:18}, studio:{x:80,y:62} };
+    const FLOW = ["канал","gateway","grok","tools","память","ответ"];
+    let state = { host:{name:"GROK BOT HOST"}, agents:[] };
+    let activeFlow = 0;
+    const roomKeys = Object.keys(ROOMS);
+    const floor = document.getElementById("floor");
+    const roster = document.getElementById("roster");
+    const feed = document.getElementById("feed");
+    const flowBox = document.getElementById("flow");
+    const metrics = document.getElementById("metrics");
+    function jitter(room){ const b = ROOMS[room] || ROOMS["desk-c"]; return { x:b.x+(Math.random()*6-3), y:b.y+(Math.random()*5-2) }; }
+    function renderFlow(){ flowBox.innerHTML = FLOW.map((n,i)=>`<span class="node ${i===activeFlow?"on":""}">${n}</span>`+(i<FLOW.length-1?'<span class="arrow">→</span>':'')).join(""); }
+    function pushEvent(text){ const t=new Date().toLocaleTimeString("ru-RU",{hour12:false}); const el=document.createElement("div"); el.className="evt"; el.innerHTML=`<time>${t}</time>${text}`; feed.prepend(el); while(feed.children.length>8) feed.lastChild.remove(); }
+    function renderMetrics(ok){ const cpu=18+Math.round(Math.random()*22), ram=41+Math.round(Math.random()*17), sess=3+Math.round(Math.random()*4), tok=12+Math.round(Math.random()*9); metrics.innerHTML=`<div class="metric"><span>Gateway</span><strong>${ok?"LIVE":"DEMO"}</strong><div class="bar"><i style="width:${ok?88:36}%"></i></div></div><div class="metric"><span>CPU</span><strong>${cpu}%</strong><div class="bar"><i style="width:${cpu}%"></i></div></div><div class="metric"><span>RAM</span><strong>${ram}%</strong><div class="bar"><i style="width:${ram}%"></i></div></div><div class="metric"><span>Сессии / токены</span><strong>${sess} · ${tok}k</strong><div class="bar"><i style="width:${30+sess*8}%"></i></div></div>`; }
+    function renderAgents(){ floor.innerHTML=""; roster.innerHTML=""; state.agents.forEach((agent,idx)=>{ if(agent.room==="ops") agent.room = idx%2?"desk-b":"desk-c"; const pos=jitter(agent.room); const el=document.createElement("div"); el.className="agent "+(agent.status==="idle"?"idle":""); el.style.left=pos.x+"%"; el.style.top=pos.y+"%"; el.innerHTML=`<div class="bubble">${agent.task}</div><div class="sprite" style="--color:${agent.color};--hair:${idx%2?"#0b1220":"#3f2d1c"}"><div class="hair"></div><div class="head"></div><div class="body"></div><div class="leg l"></div><div class="leg r"></div></div><div class="tag">${agent.name}</div>`; el.onclick=()=>{ document.querySelectorAll(".agent").forEach(a=>a.classList.remove("talk")); el.classList.add("talk"); pushEvent(`<b>${agent.name}</b> — ${agent.task}`); }; floor.appendChild(el); const row=document.createElement("div"); row.className="row"; row.innerHTML=`<span style="width:10px;height:10px;border-radius:99px;background:${agent.color}"></span><div><div class="name">${agent.name}</div><div class="role">${agent.role}</div></div><span class="pill ${agent.status}">${agent.status}</span>`; roster.appendChild(row); }); }
+    function wander(){ const busy=state.agents.filter(a=>a.status!=="idle"); if(!busy.length) return; const agent=busy[Math.floor(Math.random()*busy.length)]; const next=roomKeys[Math.floor(Math.random()*roomKeys.length)]; agent.room=next; const tasks={warroom:"собирает ответ",kitchen:"пауза / контекст","desk-a":"вызов tool","desk-b":"пишет в канал","desk-c":"смотрит сессию",lounge:"ждёт шаг",racks:"health",studio:"обновил память"}; agent.task=tasks[next]; renderAgents(); const nodes=document.querySelectorAll(".agent"); if(nodes[0]) nodes[Math.floor(Math.random()*nodes.length)].classList.add("talk"); pushEvent(`${agent.name} → ${next} · ${agent.task}`); activeFlow=(activeFlow+1)%FLOW.length; renderFlow(); }
+    async function boot(){ try{ const res=await fetch("./agents.json",{cache:"no-store"}); if(res.ok){ const data=await res.json(); if(data.agents) state=data; document.getElementById("modeLabel").textContent="agents.json · "+(data.host?.name||"host"); } }catch(_){ }
+      const healthUrl=window.OBSERVATORY?.healthUrl; let hostOk=false;
+      if(healthUrl){ try{ const h=await fetch(healthUrl,{cache:"no-store"}); hostOk=h.ok; document.getElementById("modeLabel").textContent=hostOk?"gateway /health live":"health недоступен"; }catch(_){ document.getElementById("modeLabel").textContent="нет /health · демо"; } }
+      renderAgents(); renderFlow(); renderMetrics(hostOk); pushEvent("смена открыта · Grok Bot host"); setInterval(wander,2800); setInterval(()=>renderMetrics(hostOk),5000); }
+    setInterval(()=>{ document.getElementById("clock").textContent=new Date().toLocaleTimeString("ru-RU",{hour12:false}); },1000);
+    boot();
+  </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "host": {
+    "name": "GROK BOT HOST",
+    "place": "локальный gateway",
+    "model": "Grok",
+    "gateway": "127.0.0.1:18789",
+    "health": "/health"
+  },
+  "agents": [
+    {
+      "id": "grok",
+      "name": "GROK",
+      "role": "мозг / ответы",
+      "model": "grok-4",
+      "status": "thinking",
+      "task": "разбирает входящий запрос",
+      "room": "warroom",
+      "color": "#7dd3fc"
+    },
+    {
+      "id": "router",
+      "name": "ROUTER",
+      "role": "gateway",
+      "model": "openclaw",
+      "status": "working",
+      "task": "маршрутизация сессий",
+      "room": "ops",
+      "color": "#34d399"
+    },
+    {
+      "id": "browser",
+      "name": "BROWSER",
+      "role": "поиск / страницы",
+      "model": "tool",
+      "status": "working",
+      "task": "открыл вкладку и читает",
+      "room": "desk-a",
+      "color": "#a78bfa"
+    },
+    {
+      "id": "cron",
+      "name": "CRON",
+      "role": "расписание",
+      "model": "scheduler",
+      "status": "idle",
+      "task": "ждёт следующий тик",
+      "room": "lounge",
+      "color": "#fbbf24"
+    },
+    {
+      "id": "memory",
+      "name": "MEMORY",
+      "role": "память хоста",
+      "model": "files",
+      "status": "working",
+      "task": "пишет дневной лог",
+      "room": "studio",
+      "color": "#fb7185"
+    },
+    {
+      "id": "channel",
+      "name": "CHANNEL",
+      "role": "мессенджер",
+      "model": "telegram",
+      "status": "working",
+      "task": "держит WS к каналу",
+      "room": "desk-b",
+      "color": "#22d3ee"
+    },
+    {
+      "id": "guard",
+      "name": "GUARD",
+      "role": "песочница",
+      "model": "sandbox",
+      "status": "idle",
+      "task": "смотрит exec allowlist",
+      "room": "racks",
+      "color": "#94a3b8"
+    }
+  ]
+}
